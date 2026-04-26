@@ -11,8 +11,9 @@ Uses persistent on-disk storage so embeddings survive app restarts.
 """
 
 import os
+from functools import lru_cache
+
 import chromadb
-import streamlit as st
 from langchain_chroma import Chroma
 from langchain_core.documents import Document
 from langchain_huggingface import HuggingFaceEmbeddings
@@ -21,11 +22,14 @@ from langchain_huggingface import HuggingFaceEmbeddings
 COLLECTION_NAME = "study_notes"
 
 # On-disk location for the ChromaDB data. Resolved relative to this file so the
-# path is stable regardless of the working directory Streamlit is launched from.
+# path is stable regardless of the working directory the server is launched from.
 CHROMA_DIR = os.path.join(os.path.dirname(__file__), "chroma_db")
 
 
-@st.cache_resource  # Cache so the model loads only once, not on every Streamlit rerun
+# lru_cache(maxsize=1) on a no-arg function = thread-safe lazy singleton. Same
+# "load once" behavior as Streamlit's @st.cache_resource, but with no Streamlit
+# dependency — so the module works from FastAPI, pytest, or a plain REPL.
+@lru_cache(maxsize=1)
 def get_embedding_model() -> HuggingFaceEmbeddings:
     """Load the HuggingFace sentence-transformer model.
 
@@ -44,12 +48,12 @@ def get_embedding_model() -> HuggingFaceEmbeddings:
         ) from e
 
 
-@st.cache_resource  # Cache so only one ChromaDB client exists across reruns
+@lru_cache(maxsize=1)
 def get_chroma_client() -> chromadb.ClientAPI:
     """Create a persistent ChromaDB client backed by the local filesystem.
 
     PersistentClient writes embeddings to CHROMA_DIR, so uploaded notes
-    survive across Streamlit restarts — no need to re-ingest every session.
+    survive across process restarts — no need to re-ingest every session.
     """
     return chromadb.PersistentClient(path=CHROMA_DIR)
 
@@ -83,16 +87,28 @@ def get_vectorstore() -> Chroma:
     )
 
 
+def _get_collection_or_none():
+    """Return the study_notes collection, or None on a fresh install.
+
+    Centralizes the "exists?" check so callers (clear/stats/remove) don't
+    each re-implement the list-and-membership dance. Annotation dropped to
+    avoid importing chromadb's internal Collection type just for a helper.
+    """
+    client = get_chroma_client()
+    existing = {c.name for c in client.list_collections()}
+    if COLLECTION_NAME not in existing:
+        return None
+    return client.get_collection(COLLECTION_NAME)
+
+
 def clear_vectorstore() -> None:
     """Delete all stored vectors. Called before re-processing files.
 
     Checks collection existence first — avoids raising on a fresh install
     where the collection has never been created.
     """
-    client = get_chroma_client()
-    existing = {c.name for c in client.list_collections()}
-    if COLLECTION_NAME in existing:
-        client.delete_collection(COLLECTION_NAME)
+    if _get_collection_or_none() is not None:
+        get_chroma_client().delete_collection(COLLECTION_NAME)
 
 
 def collection_stats() -> tuple[int, list[str]]:
@@ -104,12 +120,10 @@ def collection_stats() -> tuple[int, list[str]]:
     Note: pulls all metadatas to dedupe sources — O(n) memory. Fine at
     study-notes scale; revisit if collections grow past ~100k chunks.
     """
-    client = get_chroma_client()
-    existing = {c.name for c in client.list_collections()}
-    if COLLECTION_NAME not in existing:
+    col = _get_collection_or_none()
+    if col is None:
         return 0, []
 
-    col = client.get_collection(COLLECTION_NAME)
     count = col.count()
     if count == 0:
         return 0, []
@@ -121,3 +135,23 @@ def collection_stats() -> tuple[int, list[str]]:
         if md and md.get("source")
     }
     return count, sorted(sources)
+
+
+def remove_document(filename: str) -> int:
+    """Delete all vectors whose source basename equals `filename`.
+
+    Returns the number of chunks removed (0 if the collection or file is absent).
+    Callers decrement any cached chunk count by this value.
+    """
+    col = _get_collection_or_none()
+    if col is None:
+        return 0
+    result = col.get(include=["metadatas"])
+    ids_to_delete = [
+        cid
+        for cid, md in zip(result["ids"], result.get("metadatas") or [])
+        if md and os.path.basename(md.get("source", "")) == filename
+    ]
+    if ids_to_delete:
+        col.delete(ids=ids_to_delete)
+    return len(ids_to_delete)

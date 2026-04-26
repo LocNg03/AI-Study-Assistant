@@ -13,18 +13,18 @@ import vectorstore
 
 @pytest.fixture
 def isolated_chroma(tmp_path, monkeypatch):
-    """Redirect ChromaDB to a tmp dir and clear Streamlit caches.
+    """Redirect ChromaDB to a tmp dir and reset the lru_cache singletons.
 
-    @st.cache_resource caches the client at module level, so without
-    clearing it after the path swap, subsequent tests would still use
-    the cached client pointing at the previous test's tmp dir.
+    @lru_cache caches the client at module level, so without clearing it
+    after the path swap, subsequent tests would still use the cached
+    client pointing at the previous test's tmp dir.
     """
     monkeypatch.setattr(vectorstore, "CHROMA_DIR", str(tmp_path / "chroma"))
-    vectorstore.get_chroma_client.clear()
-    vectorstore.get_embedding_model.clear()
+    vectorstore.get_chroma_client.cache_clear()
+    vectorstore.get_embedding_model.cache_clear()
     yield
-    vectorstore.get_chroma_client.clear()
-    vectorstore.get_embedding_model.clear()
+    vectorstore.get_chroma_client.cache_clear()
+    vectorstore.get_embedding_model.cache_clear()
 
 
 def test_collection_stats_empty_returns_zero(isolated_chroma):

@@ -4,8 +4,15 @@ __pycache__/
 .ruff_cache/
 *.pyc
 .env
+.env.*
 chroma_db/
 uploads/
 .streamlit/
 .DS_Store
-*.docx
+
+# Personal / IDE state — never push
+.remember/
+.claude/
+.idea/
+.vscode/
+*.log

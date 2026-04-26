@@ -7,21 +7,6 @@ import pytest
 import ingestion
 
 
-class FakeUploadedFile:
-    """Duck-typed stand-in for streamlit.runtime.uploaded_file_manager.UploadedFile.
-
-    The real class is only constructable inside a live Streamlit runtime, so we
-    fake the attributes save_uploaded_file actually touches: .name and .getbuffer().
-    """
-
-    def __init__(self, name: str, content: bytes):
-        self.name = name
-        self._content = content
-
-    def getbuffer(self) -> bytes:
-        return self._content
-
-
 @pytest.fixture
 def isolated_uploads(tmp_path, monkeypatch):
     """Point ingestion.upload_dir at a per-test tmp dir; auto-reverts on teardown."""
@@ -30,19 +15,15 @@ def isolated_uploads(tmp_path, monkeypatch):
 
 
 def test_save_uploaded_file_writes_content(isolated_uploads):
-    f = FakeUploadedFile("notes.txt", b"hello world")
-    path = ingestion.save_uploaded_file(f)
+    path = ingestion.save_uploaded_file("notes.txt", b"hello world")
 
     assert Path(path).read_bytes() == b"hello world"
     assert Path(path).parent == isolated_uploads
 
 
 def test_save_uploaded_file_collision_appends_suffix(isolated_uploads):
-    f1 = FakeUploadedFile("notes.txt", b"first")
-    f2 = FakeUploadedFile("notes.txt", b"second")
-
-    p1 = ingestion.save_uploaded_file(f1)
-    p2 = ingestion.save_uploaded_file(f2)
+    p1 = ingestion.save_uploaded_file("notes.txt", b"first")
+    p2 = ingestion.save_uploaded_file("notes.txt", b"second")
 
     assert p1 != p2
     assert p2.endswith("notes_1.txt")
@@ -52,8 +33,7 @@ def test_save_uploaded_file_collision_appends_suffix(isolated_uploads):
 
 def test_save_uploaded_file_strips_path_traversal(isolated_uploads):
     """A malicious filename like ../../etc/passwd must not escape upload_dir."""
-    f = FakeUploadedFile("../../../etc/passwd", b"x")
-    path = ingestion.save_uploaded_file(f)
+    path = ingestion.save_uploaded_file("../../../etc/passwd", b"x")
 
     assert Path(path).name == "passwd"
     assert Path(path).parent == isolated_uploads

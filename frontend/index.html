@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Study Assistant</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Fraunces:opsz,wght@9..144,400;9..144,500&display=swap">
+<style>
+  :root {
+    --bg: oklch(0.17 0.005 260);
+    --bg-2: oklch(0.20 0.006 260);
+    --surface: oklch(0.22 0.006 260);
+    --surface-2: oklch(0.25 0.007 260);
+    --border: oklch(0.30 0.008 260);
+    --border-strong: oklch(0.38 0.010 260);
+    --fg: oklch(0.97 0.005 260);
+    --fg-2: oklch(0.82 0.006 260);
+    --muted: oklch(0.62 0.008 260);
+    --muted-2: oklch(0.48 0.008 260);
+    --accent: oklch(0.88 0.18 120);
+    --accent-ink: oklch(0.22 0.08 120);
+    --accent-dim: oklch(0.88 0.18 120 / 0.14);
+    --danger: oklch(0.72 0.15 25);
+    --radius: 10px;
+    --radius-sm: 6px;
+    --shadow: 0 1px 0 oklch(1 0 0 / 0.04) inset, 0 8px 24px -12px oklch(0 0 0 / 0.5);
+  }
+  html[data-theme="light"] {
+    --bg: oklch(0.985 0.003 80);
+    --bg-2: oklch(0.97 0.003 80);
+    --surface: oklch(1 0 0);
+    --surface-2: oklch(0.96 0.004 80);
+    --border: oklch(0.90 0.004 80);
+    --border-strong: oklch(0.82 0.005 80);
+    --fg: oklch(0.18 0.005 260);
+    --fg-2: oklch(0.30 0.006 260);
+    --muted: oklch(0.50 0.008 260);
+    --muted-2: oklch(0.65 0.008 260);
+    --accent: oklch(0.56 0.18 140);
+    --accent-ink: oklch(0.98 0.02 140);
+    --accent-dim: oklch(0.56 0.18 140 / 0.10);
+    --shadow: 0 1px 0 oklch(1 0 0 / 0.8) inset, 0 8px 24px -16px oklch(0 0 0 / 0.15);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--fg); }
+  body {
+    font-family: "Inter Tight", system-ui, sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+    letter-spacing: -0.005em;
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+  }
+  .mono { font-family: "IBM Plex Mono", ui-monospace, monospace; font-feature-settings: "ss01"; }
+  .serif { font-family: "Fraunces", Georgia, serif; font-optical-sizing: auto; }
+  button { font-family: inherit; color: inherit; }
+  input, textarea { font-family: inherit; color: inherit; }
+  ::selection { background: var(--accent); color: var(--accent-ink); }
+
+  /* Scrollbars */
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; border: 2px solid var(--bg); }
+  ::-webkit-scrollbar-thumb:hover { background: var(--border-strong); }
+
+  #root { min-height: 100vh; }
+
+  /* Animations */
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(4px);} to { opacity: 1; transform: none;} }
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(14px);} to { opacity: 1; transform: none;} }
+  @keyframes fadeUpSm { from { opacity: 0; transform: translateY(6px);} to { opacity: 1; transform: none;} }
+  @keyframes fadeDown { from { opacity: 0; transform: translateY(-8px);} to { opacity: 1; transform: none;} }
+  @keyframes slideInL { from { opacity: 0; transform: translateX(-20px);} to { opacity: 1; transform: none;} }
+  @keyframes slideInR { from { opacity: 0; transform: translateX(20px);} to { opacity: 1; transform: none;} }
+  @keyframes scaleIn { from { opacity: 0; transform: scale(0.94);} to { opacity: 1; transform: scale(1);} }
+  @keyframes pop { 0% { transform: scale(0.6); opacity: 0;} 60% { transform: scale(1.08); opacity: 1;} 100% { transform: scale(1);} }
+  @keyframes pulse { 0%, 100% { opacity: 1;} 50% { opacity: 0.5;} }
+  @keyframes pulseRing { 0% { box-shadow: 0 0 0 0 var(--accent);} 70% { box-shadow: 0 0 0 10px transparent;} 100% { box-shadow: 0 0 0 0 transparent;} }
+  @keyframes shimmer { 0% { background-position: -200% 0;} 100% { background-position: 200% 0;} }
+  @keyframes caret { 0%, 50% { opacity: 1;} 51%, 100% { opacity: 0;} }
+  @keyframes flipIn { from { transform: rotateY(180deg); opacity: 0;} to { transform: rotateY(0); opacity: 1;} }
+  @keyframes bounceDots { 0%, 60%, 100% { transform: translateY(0); opacity: 0.5;} 30% { transform: translateY(-4px); opacity: 1;} }
+  @keyframes shake { 0%, 100% { transform: translateX(0);} 25% { transform: translateX(-4px);} 75% { transform: translateX(4px);} }
+  @keyframes gradientShift { 0%, 100% { background-position: 0% 50%;} 50% { background-position: 100% 50%;} }
+  @keyframes widthGrow { from { width: 0;} to { width: var(--target-w, 100%);} }
+  @keyframes rotate { to { transform: rotate(360deg);} }
+  @keyframes shine {
+    0% { transform: translateX(-100%) skewX(-12deg);}
+    100% { transform: translateX(250%) skewX(-12deg);}
+  }
+  @keyframes float {
+    0%, 100% { transform: translateY(0);}
+    50% { transform: translateY(-4px);}
+  }
+
+  .fade-in { animation: fadeIn 0.25s ease-out both; }
+  .fade-up { animation: fadeUp 0.45s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+  .fade-up-sm { animation: fadeUpSm 0.35s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+  .scale-in { animation: scaleIn 0.3s cubic-bezier(0.2, 0.9, 0.3, 1.1) both; }
+  .slide-in-r { animation: slideInR 0.35s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+  .slide-in-l { animation: slideInL 0.35s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+  .stagger > * { animation: fadeUpSm 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+  .stagger > *:nth-child(1) { animation-delay: 0.02s;}
+  .stagger > *:nth-child(2) { animation-delay: 0.07s;}
+  .stagger > *:nth-child(3) { animation-delay: 0.12s;}
+  .stagger > *:nth-child(4) { animation-delay: 0.17s;}
+  .stagger > *:nth-child(5) { animation-delay: 0.22s;}
+  .stagger > *:nth-child(6) { animation-delay: 0.27s;}
+  .stagger > *:nth-child(7) { animation-delay: 0.32s;}
+
+  /* Interactive micro */
+  .press { transition: transform 0.12s ease, background-color 0.12s ease, border-color 0.12s ease, color 0.12s ease, box-shadow 0.12s ease;}
+  .press:active { transform: scale(0.97);}
+  .lift { transition: transform 0.2s cubic-bezier(0.2,0.8,0.2,1), box-shadow 0.2s ease, border-color 0.2s ease;}
+  .lift:hover { transform: translateY(-1px);}
+  .glow-hover:hover { box-shadow: 0 0 0 3px var(--accent-dim);}
+  .shimmer-bar {
+    background: linear-gradient(90deg, transparent 0%, var(--accent-dim) 50%, transparent 100%);
+    background-size: 200% 100%;
+    animation: shimmer 1.6s linear infinite;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.001ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.001ms !important;
+    }
+  }
+</style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+  <script type="text/babel" data-presets="env,react" src="/src/bundle.jsx"></script>
+</body>
+</html>

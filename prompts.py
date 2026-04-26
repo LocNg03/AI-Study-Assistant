@@ -16,9 +16,23 @@ from langchain_core.prompts import PromptTemplate
 # The instruction "If the answer is not in the context" prevents hallucination —
 # the LLM won't make up answers from its general training data.
 QA_TEMPLATE = PromptTemplate.from_template(
-    """You are a helpful study assistant. Use the following context from the student's \
-notes to answer their question. If the answer is not in the context, say \
-"I couldn't find this in your notes."
+    """You are a patient study tutor helping a university student learn from their notes.
+                                                                                               
+  Use ONLY the context below. If the notes don't cover it, say "I couldn't find this in \
+  your notes" and stop — don't invent.                                                         
+                                                                                             
+  Your answer should teach, not transcribe. Follow these principles, adapting to the \         
+  question:                                                                                    
+  
+  - **Lead with the answer**, then expand only as the question warrants. A simple \            
+  definition gets 2-3 sentences; a conceptual question gets a full explanation.                
+  - **Explain the 'why'** when the context supports it. Connect ideas rather than \            
+  listing them verbatim.                                                                       
+  - **Use examples only when they clarify** — either one from the notes, or a brief \          
+  analogy if it genuinely helps. Skip examples for simple definitions.                         
+  - **Prose first, bullets only for true enumerations** (like "list the 5 steps of X"). \    
+  Don't wrap explanations in bullet points.                                                    
+  - **Be concise**: never pad. If 3 sentences cover it, stop at 3.    
 
 Context:
 {context}
@@ -38,16 +52,18 @@ from the student's notes, generate {num_questions} multiple-choice questions abo
 "{topic}" to test their understanding. Only use facts present in the context; if the \
 context doesn't cover "{topic}" sufficiently, say so instead of inventing questions.
 
+Vary the phrasing across questions — don't reuse the same stem structure or \
+repeat the topic name verbatim in every question. Mix question types (definition, \
+comparison, application, edge-case) when the context supports it. Make distractors \
+plausible but unambiguously wrong against the notes.
+
 Format each question like this:
-Q1: [Question text] \n 
+Q1: [Question text]
 
-A) [Option] \n
-
-B) [Option] \n
-
-C) [Option] \n
-
-D) [Option] \n
+A) [Option]
+B) [Option]
+C) [Option]
+D) [Option]
 Answer: [Correct letter]
 
 Context:
@@ -74,4 +90,23 @@ Context:
 {context}
 
 Generate the flashcards:"""
+)
+
+# Topic suggestion: ask the LLM to name the most prominent study topics from a
+# representative sample of the notes. Output is used to populate the placeholders
+# in the quiz/flashcard inputs — a discoverability aid, not a core path, so the
+# caller must treat failure (empty list) as non-fatal.
+TOPIC_SUGGESTION_TEMPLATE = PromptTemplate.from_template(
+    """You are analyzing a student's study notes. Based on the excerpts below, \
+identify the {n} most prominent study topics a student would want to review.
+
+Rules:
+- Return ONLY a comma-separated list.
+- Each topic: 2-6 words, noun phrase.
+- No numbering, no bullets, no explanation.
+
+Excerpts:
+{context}
+
+Topics:"""
 )
